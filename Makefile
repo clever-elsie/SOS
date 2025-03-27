@@ -7,7 +7,8 @@ KTAR=kernel/main.o
 KCPP=kernel/kernel.cpp
 KEFL=kernel/kernel.elf
 GPX=kernel/graphics
-OBJS=kernel/include/newlib_helper.o $(GPX)/console.o
+PCI=kernel/pci
+OBJS=kernel/include/newlib_helper.o $(GPX)/console.o $(PCI)/pci.o $(PCI)/error.o
 
 CPPFLAG=$(OPT) $(LIB) $(DEF)
 LDFLAG =--entry KernelMain -z norelro --image-base 0x100000 --static

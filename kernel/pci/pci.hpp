@@ -1,6 +1,8 @@
 #ifndef SOS_KERNEL_PCI
 #define SOS_KERNEL_PCI
 #include <stdint.h>
+#include <array>
+#include "error.hpp"
 namespace pci{
 inline constexpr uint16_t gPciConfigAddress;
 inline constexpr uint16_t gPciConfigData;
@@ -15,7 +17,7 @@ inline uint16_t getVendorID(uint8_t bus,uint8_t device,uint8_t func);
 
 // 未実装
 inline uint16_t getDeviceID(uint8_t bus,uint8_t device,uint8_t func);
-inline uint16_t getHeaderType(uint8_t bus,uint8_t device,uint8_t func);
+inline uint8_t getHeaderType(uint8_t bus,uint8_t device,uint8_t func);
 /**
  * [31:24] base class
  * [23:16] sub class
@@ -32,6 +34,13 @@ uint32_t getBusNumbers(uint8_t bus,uint8_t device,uint8_t func);
 bool is_single_func_device(uint8_t header_type);
 
 struct Device{ uint8_t bus,device,func,header_type; };
+
+// pci device
+inline std::array<Device,>devs;
+inline int32_t devs_cnt;
+
+Error ScanAllBus();
+
 
 } // namespace pci
 #endif
