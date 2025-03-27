@@ -1,0 +1,8 @@
+build
+tools/efont-devel
+tools/font2c
+*.o
+*/*.o
+*.elf
+*/*.elf
+
