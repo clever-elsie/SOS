@@ -1,10 +1,20 @@
 #ifndef SOS_KERNEL_PIXEL_WRITER
 #define SOS_KERNEL_PIXEL_WRITER
-
 #include <cstddef>
 #include <cstdint>
 #include "fonts.hpp"
 #include "frameBufConfig.hpp"
+#include "include/placement_new.hpp"
+
+template<class T> struct Vec2D{
+    T x,y;
+    Vec2D(const T&x_,const T&y_):x(x_),y(y_){}
+    template<class U>
+    Vec2D<T>& operator+=(const Vec2D<U>&rhs){
+        x+=rhs.x,y+=rhs.y;
+        return*this;
+    }
+};
 
 struct Pixel{
     uint8_t r,g,b;
@@ -24,6 +34,12 @@ class pxWriter{
     virtual void write(int32_t x,int32_t y,const Pixel&c)const=0;
     void writeAscii(int32_t x,int32_t y,char c,const Pixel&color)const;
     void writeString(int32_t x,int32_t y,const char*s,const Pixel&color)const;
+    void fillRect(int32_t x,int32_t y,int32_t width,int32_t height,const Pixel&color)const;
+    void drawRect(int32_t x,int32_t y,int32_t width,int32_t height,const Pixel&color)const;
+
+    uint32_t width()const{return conf.hres;}
+    uint32_t height()const{return conf.vres;}
+    virtual Pixel color_at(int32_t x,int32_t y)const=0;
 };
 
 class rgbWriter:public pxWriter{
@@ -32,6 +48,7 @@ class rgbWriter:public pxWriter{
     using pxWriter::writeAscii;
     using pxWriter::writeString;
     virtual void write(int32_t x,int32_t y,const Pixel&c) const override;
+    virtual Pixel color_at(int32_t x,int32_t y)const override;
 };
 
 class bgrWriter:public pxWriter{
@@ -40,32 +57,7 @@ class bgrWriter:public pxWriter{
     using pxWriter::writeAscii;
     using pxWriter::writeString;
     virtual void write(int32_t x,int32_t y,const Pixel&c) const override;
-};
-
-class Console{
-    public:
-    const int32_t height,width;
-    private:
-    const pxWriter&px;
-    int32_t cury,curx;
-    constexpr static Pixel default_fg{255,255,255},default_bg{20,20,20};
-    Pixel fg_color,bg_color;
-    struct pannel{
-        uint8_t data;
-        Pixel color;
-        pannel()=default;
-        pannel(uint8_t ch,const Pixel&color):data(ch),color(color){}
-        pannel&operator=(const pannel&rhs)=default;
-    };
-    pannel buf[67][240]; // limit:1920x1080
-    private:
-    void LineClear(int32_t line);
-    void NewLine();
-    public:
-    Console()=default;
-    Console(const pxWriter&pxWr,const Pixel&fg=default_fg,const Pixel&bg=default_bg);
-    void Put(const char*s);
-    void clear()const;
+    virtual Pixel color_at(int32_t x,int32_t y)const override;
 };
 
 #endif

@@ -1,19 +1,4 @@
-#ifndef SOS_KERNEL_GRAPHICS
-#define SOS_KERNEL_GRAPHICS
-#include <cstdint>
-#include <cstddef>
-#include <cstdio>
-#include <stdarg.h>
-#include "console.hpp"
-
-template<class T>
-void* operator new(size_t size,T*buf){return buf;}
-void operator delete(void*buf)noexcept{}
-
-char g_pixel_writer_buffer[MAX_DISPLAY_COUNT][sizeof(rgbWriter)];
-char g_console_buffer[MAX_DISPLAY_COUNT][sizeof(Console)];
-pxWriter* pxWr[MAX_DISPLAY_COUNT];
-Console*console[MAX_DISPLAY_COUNT];
+#include "graphics.hpp"
 
 void setup_console(const int32_t display_count,const FrameBufConfig*fbc){
     for(int32_t i=0;i<display_count;++i){
@@ -42,4 +27,3 @@ int32_t printk(const char*const format,...){
     return res;
 }
 
-#endif

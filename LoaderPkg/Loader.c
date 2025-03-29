@@ -148,8 +148,6 @@ EFI_STATUS OpenGraphicsOutputProtocol(EFI_HANDLE image_handle,EFI_GRAPHICS_OUTPU
 
 void SetFrameBufConfig(EFI_GRAPHICS_OUTPUT_PROTOCOL**gop,struct FrameBufConfig*fbc,UINTN gop_size){
     Print(L"The number of Display is %u.\n",gop_size);
-    for(UINTN i=0;i<gop_size;++i){
-    }
     for(UINTN i=0;i<MAX_DISPLAY_COUNT;++i){
         if(i<gop_size){
             fbc[i].frame_buf=(UINT8*)gop[i]->Mode->FrameBufferBase;
@@ -157,7 +155,7 @@ void SetFrameBufConfig(EFI_GRAPHICS_OUTPUT_PROTOCOL**gop,struct FrameBufConfig*f
             fbc[i].linesize=info->PixelsPerScanLine;
             fbc[i].hres=info->HorizontalResolution;
             fbc[i].vres=info->VerticalResolution;
-            Print(L"Display %u, addr:0x%lx Resolution: %ux%u, fmt: %s, %u pixels/line\n",fbc[i].frame_buf,i+1,fbc[i].hres,fbc[i].vres,GetPixelFormatUnicode(info->PixelFormat),fbc[i].linesize);
+            Print(L"Display %u, addr:0x%lx Resolution: %ux%u, fmt: %s, %u pixels/line\n",i,fbc[i].frame_buf,fbc[i].hres,fbc[i].vres,GetPixelFormatUnicode(info->PixelFormat),fbc[i].linesize);
             switch((UINTN)(info->PixelFormat)){
                 case PixelRedGreenBlueReserved8BitPerColor:
                     fbc[i].fmt=kRGB_8bitPerColor; break;
