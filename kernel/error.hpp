@@ -25,6 +25,7 @@ struct Error{
         kInvalidPhase,
         kUnknownXHCISpeedID,
         kNoWaiter,
+        kNoPCIMSI,
         kLastOfCode,
     };
     Error(Code v_,const char*file_,int32_t line_):v(v_),file(file_),line(line_){}
@@ -55,6 +56,7 @@ struct Error{
       "kInvalidPhase",
       "kUnknownXHCISpeedID",
       "kNoWaiter",
+      "kNoPCIMSI",
     };
     Code v;
     const char*file;

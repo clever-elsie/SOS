@@ -142,3 +142,81 @@ namespace pci{
         return{bar|((uint64_t)bar_upper<<32),Error{Error::kSuccess,__FILE__,__LINE__}};
     }
 }
+
+namespace pci{
+    CapabilityHeader getCapabilityHeader(const Device&dev,uint8_t addr){
+        CapabilityHeader header;
+        header.data=pci::getConfReg(dev,addr);
+        return header;
+    }
+    MSICapability getMSICapability(const Device& dev, uint8_t cap_addr) {
+        MSICapability msi_cap{};
+        msi_cap.header.data = getConfReg(dev, cap_addr);
+        msi_cap.msg_addr = getConfReg(dev, cap_addr + 4);
+        uint8_t msg_data_addr = cap_addr + 8;
+        if (msi_cap.header.bits.addr_64_capable) {
+            msi_cap.msg_upper_addr = getConfReg(dev, cap_addr + 8);
+            msg_data_addr = cap_addr + 12;
+        }
+        msi_cap.msg_data = getConfReg(dev, msg_data_addr);
+        if (msi_cap.header.bits.per_vector_mask_capable) {
+          msi_cap.mask_bits = getConfReg(dev, msg_data_addr + 4);
+          msi_cap.pending_bits = getConfReg(dev, msg_data_addr + 8);
+        }
+        return msi_cap;
+    }
+    void setMSICapability(const Device& dev, uint8_t cap_addr,const MSICapability& msi_cap) {
+        setConfReg(dev, cap_addr, msi_cap.header.data);
+        setConfReg(dev, cap_addr + 4, msi_cap.msg_addr);
+        uint8_t msg_data_addr = cap_addr + 8;
+        if (msi_cap.header.bits.addr_64_capable) {
+          setConfReg(dev, cap_addr + 8, msi_cap.msg_upper_addr);
+          msg_data_addr = cap_addr + 12;
+        }
+        setConfReg(dev, msg_data_addr, msi_cap.msg_data);
+        if (msi_cap.header.bits.per_vector_mask_capable) {
+          setConfReg(dev, msg_data_addr + 4, msi_cap.mask_bits);
+          setConfReg(dev, msg_data_addr + 8, msi_cap.pending_bits);
+        }
+    }
+
+    Error ConfigureMSIRegister(const Device& dev, uint8_t cap_addr,uint32_t msg_addr, uint32_t msg_data,unsigned int num_vector_exponent) {
+        auto msi_cap = getMSICapability(dev, cap_addr);
+        if (msi_cap.header.bits.multi_msg_capable <= num_vector_exponent)
+            msi_cap.header.bits.multi_msg_enable =msi_cap.header.bits.multi_msg_capable;
+         else msi_cap.header.bits.multi_msg_enable = num_vector_exponent;
+
+        msi_cap.header.bits.msi_enable = 1;
+        msi_cap.msg_addr = msg_addr;
+        msi_cap.msg_data = msg_data;
+
+        setMSICapability(dev, cap_addr, msi_cap);
+        return MAKE_ERROR(Error::kSuccess);
+    }
+
+  /** @brief 指定された MSI レジスタを設定する */
+    Error ConfigureMSIXRegister(const Device& dev, uint8_t cap_addr,uint32_t msg_addr, uint32_t msg_data,unsigned int num_vector_exponent) {
+        return MAKE_ERROR(Error::kNotImplemented);
+    }
+
+    Error ConfigureMSI(const Device&dev,uint32_t msg_addr,uint32_t msg_data,unsigned int num_vec_exponent){
+        uint8_t cap_addr=pci::getConfReg(dev,0x34)&0xFFu;
+        uint8_t msi_cap_addr=0,msix_cap_addr=0;
+        while(cap_addr){
+            auto header=getCapabilityHeader(dev,cap_addr);
+            if(header.bits.cap_id==kCapabilityMSI) msi_cap_addr=cap_addr;
+            else if(header.bits.cap_id==kCapabilityMSIX) msix_cap_addr=cap_addr;
+            cap_addr=header.bits.next_ptr;
+        }
+        if(msi_cap_addr) return ConfigureMSIRegister(dev,msi_cap_addr,msg_addr,msg_data,num_vec_exponent);
+        if(msix_cap_addr)return ConfigureMSIXRegister(dev,msix_cap_addr,msg_addr,msg_data,num_vec_exponent);
+        return MAKE_ERROR(Error::kNoPCIMSI);
+    }
+
+    Error ConfigureMSIFixedDestination(const Device& dev, uint8_t apic_id,MSITriggerMode trigger_mode, MSIDeliveryMode delivery_mode,uint8_t vector, unsigned int num_vector_exponent) {
+        uint32_t msg_addr = 0xfee00000u | (apic_id << 12);
+        uint32_t msg_data = (static_cast<uint32_t>(delivery_mode) << 8) | vector;
+        if (trigger_mode == MSITriggerMode::kLevel) msg_data |= 0xc000;
+        return ConfigureMSI(dev, msg_addr, msg_data, num_vector_exponent);
+    }
+}
