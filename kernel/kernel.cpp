@@ -19,12 +19,26 @@
 
 #include "interrupt.hpp"
 #include "queue.hpp"
+#include "memory_map.hpp"
+#include "segment.hpp"
+#include "paging.hpp"
+#include "memory_manager.hpp"
 
+
+// fn of asm is declared below
 extern "C" uint16_t getCodeSegment(void);
 extern "C" void LoadIDT(uint16_t limit, uint64_t offset);
+extern "C" void LoadGDT(uint16_t limit, uint64_t offset);
+extern "C" void SetCSSS(uint16_t cs, uint16_t ss);
+extern "C" void SetDSAll(uint16_t value);
+extern "C" void SetCR3(uint64_t value);
+// end of declaration of asm functions
 
 inline pci::Device*xhc_dev=nullptr;
 usb::xhci::Controller*xhc;
+
+char g_memory_manager_buf[sizeof(BitmapMemoryManager)];
+BitmapMemoryManager*memory_manager;
 
 void MouseObserver(int8_t displacement_x,int8_t displacement_y);
 void SwitchEhci2Xhci(const pci::Device&xhc_dev);
@@ -43,13 +57,44 @@ void intrruptHandlerXHCI(InterruptFrame*frame){
     NotifyEndOfInterrupt();
 }
 
+alignas(16) uint8_t kernel_main_stack[1024*1024];
 
-extern "C" void KernelMain(const uint64_t display_count,const FrameBufConfig*fbc){
-    setup_console(display_count,fbc);
+extern "C" void KernelMainNewStack(const uint64_t display_count_cp,const FrameBufConfig*fbc_ref,const MemoryMap&memory_map_ref){
+    display_count=display_count_cp;
+    FrameBufConfig fbc[MAX_DISPLAY_COUNT];
+    for(int i=0;i<display_count;++i)
+        fbc[i]=fbc_ref[i];
+    setup_console(fbc);
+    MemoryMap memory_map{memory_map_ref};
+    const std::array available_memory_types{
+      MemoryType::kEfiBootServicesCode,
+      MemoryType::kEfiBootServicesData,
+      MemoryType::kEfiConventionalMemory,
+    };
+
+    SetupSegments();
+    const uint16_t kernel_cs=1<<3, kernel_ss=2<<3;
+    SetDSAll(0);
+    SetCSSS(kernel_cs,kernel_ss);
+    SetupIdentityPageTable();
 
     std::array<Message,4096>main_queue_buf;
     ArrayQueue<Message>main_queue(main_queue_buf);
     ::main_queue=&main_queue;
+    
+    memory_manager=new(g_memory_manager_buf) BitmapMemoryManager;
+    const auto memory_map_base=reinterpret_cast<uintptr_t>(memory_map.buffer);
+    uintptr_t available_end=0;
+    for(uintptr_t itr=memory_map_base;itr<memory_map_base+memory_map.map_size;itr+=memory_map.descriptor_size){
+        const auto desc=reinterpret_cast<const MemoryDescriptor*>(itr);
+        if(available_end<desc->physical_start)
+            memory_manager->MarkAllocated(FrameID{available_end/kBytesPerFrame},(desc->physical_start-available_end)/kBytesPerFrame);
+        const auto physical_end=desc->physical_start+desc->number_of_pages*kUEFIPageSize;
+        if(IsAvailable(static_cast<MemoryType>(desc->type)))
+            available_end=physical_end;
+        else memory_manager->MarkAllocated(FrameID{desc->physical_start/kBytesPerFrame},desc->number_of_pages*kUEFIPageSize/kBytesPerFrame);
+    }
+    memory_manager->SetMemoryRange(FrameID{1},FrameID{available_end/kBytesPerFrame});
 
     mouse_cursor=new(g_mouse_cursor_buf) MouseCursor{pxWr[0],{300,200}};
     pci::ScanAllBus();

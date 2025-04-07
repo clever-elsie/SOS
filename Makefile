@@ -18,7 +18,7 @@ OBJSG=$(GPX)/console.o $(GPX)/graphics.o $(GPX)/mouse.o $(GPX)/pxWriter.o
 
 OBJSUSB=$(USBD)/device.o $(USBD)/memory.o $(XHCI)/device.o $(XHCI)/devmgr.o $(XHCI)/port.o $(XHCI)/registers.o $(XHCI)/ring.o $(XHCI)/trb.o $(XHCI)/xhci.o $(CLSD)/base.o $(CLSD)/hid.o $(CLSD)/keyboard.o $(CLSD)/mouse.o
 
-OBJD=$(OBJSG) $(OBJSUSB) $(PCI)/pci.o kernel/logger.o kernel/device/asmfunc.o
+OBJD=$(OBJSG) $(OBJSUSB) $(PCI)/pci.o kernel/logger.o kernel/device/asmfunc.o kernel/segment.o kernel/paging.o kernel/memory_manager.o
 
 OBJS=$(HLP) $(OBJD) kernel/interrupt.o
 

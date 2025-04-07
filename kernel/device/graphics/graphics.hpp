@@ -15,8 +15,9 @@ inline char g_mouse_cursor_buf[sizeof(MouseCursor)];
 inline pxWriter* pxWr[MAX_DISPLAY_COUNT];
 inline Console*console[MAX_DISPLAY_COUNT];
 inline MouseCursor*mouse_cursor;
+inline uint64_t display_count;
 
-void setup_console(const int32_t display_count,const FrameBufConfig*fbc);
+void setup_console(const FrameBufConfig*fbc);
 int32_t printk(const char*const format,...);
 
 #endif

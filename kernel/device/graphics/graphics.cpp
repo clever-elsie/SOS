@@ -1,6 +1,6 @@
 #include "graphics.hpp"
 
-void setup_console(const int32_t display_count,const FrameBufConfig*fbc){
+void setup_console(const FrameBufConfig*fbc){
     for(int32_t i=0;i<display_count;++i){
         switch((uint64_t)fbc[i].fmt){
             case kRGB_8bitPerColor:

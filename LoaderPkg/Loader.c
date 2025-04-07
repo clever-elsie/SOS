@@ -75,7 +75,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,EFI_SYSTEM_TABLE* system_tabl
  
     // call entry point function which was loaded at kernel_base_addr(0x10'0000) previous.
     UINTN entry_addr=*(UINT64*)(k_1st_addr+24);
-    typedef void EntryPointType(const UINT64,const struct FrameBufConfig*);
+    typedef void EntryPointType(const UINT64,const struct FrameBufConfig*,const MemoryMap_info*);
     EntryPointType* entry_point=(EntryPointType*)entry_addr;
     Print(L"[Boot Loader] Entry Point Address: 0x%lx\n",entry_point);
 
@@ -86,7 +86,7 @@ EFI_STATUS EFIAPI UefiMain(EFI_HANDLE image_handle,EFI_SYSTEM_TABLE* system_tabl
         try(gBS->ExitBootServices(image_handle,mmap_info.map_key),__FILE__,__LINE__);
     }
 
-    entry_point((UINT64)gop_size,&fbc[0]);
+    entry_point((UINT64)gop_size,&fbc[0],&mmap_info);
  
     return EFI_SUCCESS;
 }
